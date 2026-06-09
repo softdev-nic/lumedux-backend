@@ -16,7 +16,7 @@ const server = http.createServer(app);
 const io = new Server(server,
     {
         cors: {
-            origin: ['http://localhost:5173', 'http://lumedux.site'],
+            origin: ['http://localhost:5173', 'http://lumedux.site', 'http://www.lumedux.site'],
             methods: ['GET', 'POST']
         },
         
