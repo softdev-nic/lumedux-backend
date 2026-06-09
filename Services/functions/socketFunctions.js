@@ -11,7 +11,7 @@
 }
 
  const sendRoomMessage=(io, roomId, message)=> {
-    io.to(roomId).emit("message", message);
+    io.to(roomId).emit("message_room", message);
 }
 
 module.exports = {

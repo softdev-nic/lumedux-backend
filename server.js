@@ -12,17 +12,17 @@ const cors = require('cors');
 const { joinRoom, leaveRoom, sendRoomMessage } = require('./Services/functions/socketFunctions');
 
 
-
 const server = http.createServer(app);
 const io = new Server(server,
     {
         cors: {
-            origin: 'http://localhost:5173',
+            origin: ['http://localhost:5173', 'http://lumedux.site'],
             methods: ['GET', 'POST']
-        }
+        },
+        
     }
 );
-
+                                            
 
 io.on('connection', (socket) => {
     console.log('a user connected');
@@ -47,6 +47,11 @@ io.on('connection', (socket) => {
 
    
 });
+socket.on("send_room_message",(roomId,message)=>{
+    console.log("Message event clicked")
+    sendRoomMessage(io,roomId,message)
+    console.log(message)
+})
 socket.on('leave_room', (roomId) => {
    leaveRoom(socket, roomId)
    console.log(socket.rooms);
