@@ -1,89 +1,98 @@
-const express = require('express');
+ const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const crypto = require("crypto");
+const cors = require("cors");
+require("dotenv").config();
+
+const {
+  joinRoom,
+  leaveRoom,
+  sendRoomMessage,
+} = require("./Services/functions/socketFunctions");
+
 const app = express();
-const port = 3000   
-const http = require('http');
-const { Server } = require('socket.io');
-const crypto = require('crypto');
-const cors = require('cors');
 
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URLS
+      ? process.env.FRONTEND_URLS.split(",")
+      : ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 
-//service functions
-
-const { joinRoom, leaveRoom, sendRoomMessage } = require('./Services/functions/socketFunctions');
-
+app.use(express.json());
 
 const server = http.createServer(app);
-const io = new Server(server,
-    {
-        cors: {
-            origin: ['http://localhost:5173', 'http://lumedux.site', 'http://www.lumedux.site'],
-            methods: ['GET', 'POST'],
-            credentials: true
-        },
-        
-    }
-);
-                                            
 
-io.on('connection', (socket) => {
-    console.log('a user connected');
-    
-    socket.on("message",(msg)=>{
-        console.log(msg)
-    })
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URLS
+      ? process.env.FRONTEND_URLS.split(",")
+      : ["http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
-   
-       socket.on('join_room', () => {
+io.on("connection", (socket) => {
+  console.log(`Connected: ${socket.id}`);
 
+  socket.on("message", (msg) => {
+    console.log(msg);
+  });
+
+  // Create a new room
+  socket.on("create_room", () => {
     const roomId = crypto.randomUUID();
-
-    console.log("2");
 
     joinRoom(socket, roomId);
 
-    socket.emit("room-created", roomId);
-  
+    socket.emit("room_created", roomId);
 
-    console.log(socket.rooms);
-
-   
-});
-socket.on("send_room_message",(roomId,message)=>{
-    console.log("Message event clicked")
-    sendRoomMessage(io,roomId,message)
-    console.log(message)
-})
-socket.on('leave_room', (roomId) => {
-   leaveRoom(socket, roomId)
-   console.log(socket.rooms);
-}
-
-
-
-
-        )
-         
-  
-    
-
-
-
-
-    socket.on('disconnect', () => {
-      console.log('user disconnected');
-    });
+    console.log(`Room created: ${roomId}`);
   });
-  
-  server.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-    });
- 
 
-    app.use(cors());
-    app.use(express.json());
-    
-   
-        
+  // Join an existing room
+  socket.on("join_room", (roomId) => {
+    if (!roomId) {
+      return socket.emit("error", "Room ID required");
+    }
 
+    joinRoom(socket, roomId);
 
- 
+    socket.emit("joined_room", roomId);
+
+    console.log(`${socket.id} joined ${roomId}`);
+  });
+
+  socket.on("send_room_message", (roomId, message) => {
+    if (!roomId || !message) {
+      return;
+    }
+
+    sendRoomMessage(io, roomId, message);
+
+    console.log(`Room: ${roomId}`);
+    console.log(`Message: ${message}`);
+  });
+
+  socket.on("leave_room", (roomId) => {
+    if (!roomId) return;
+
+    leaveRoom(socket, roomId);
+
+    console.log(`${socket.id} left ${roomId}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`Disconnected: ${socket.id}`);
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
